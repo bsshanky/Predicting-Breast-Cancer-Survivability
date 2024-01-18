@@ -1,0 +1,338 @@
+---
+title: "Final_project_EDA"
+author: "Shashank Bettada"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import, echo=FALSE}
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(tidyverse)
+library(scales)
+library(modelr)
+```
+
+```{r}
+
+df_original <- read_csv("METABRIC_RNA_Mutation.csv",
+  show_col_types = FALSE)
+  
+df_import <- read_csv("METABRIC_Cleaned_Encoded_Updated_With_DOC (2).csv",
+  show_col_types = FALSE)
+
+df_tidy <- df_import %>%
+  mutate(overall_survival=if_else(overall_survival > 0, "TRUE", "FALSE"))
+colnames(df_tidy)[25] <- "type_of_breast_surgery_BREAST_CONSERVING"
+
+df_tidy <- na.omit(df_tidy)
+df_original_tidy <- na.omit(df_original)
+
+df_tidy<- df_tidy %>% 
+ mutate_if(is.numeric, round)
+
+```
+
+```{r}
+ggplot(data = df_tidy, mapping = aes(x=as.factor(overall_survival), y=age_at_diagnosis, 
+                                      fill=overall_survival), position = 
+         position_dodge(width = 1)) +
+  geom_boxplot() +
+  xlab("Survived Cancer Diagnosis") + 
+  ylab("Age at Diagnosis") +
+  labs(title = "Later diagnosis of breast cancer leads to lower chance of survival")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+ggplot(data = df_tidy, mapping = aes(x=as.factor(overall_survival), y=tumor_size, 
+                                      fill=overall_survival), position = 
+         position_dodge(width = 1)) +
+  geom_boxplot() +
+  xlab("Survived Cancer Diagnosis") + 
+  ylab("Size of Tumor") +
+  labs(title = "Larger tumor size leads to lower chance of survival")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+ggplot(data = df_tidy, mapping = aes(x=as.factor(overall_survival), y=lymph_nodes_examined_positive, 
+                                      fill=overall_survival), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Survived Cancer Diagnosis") + 
+  ylab("Num of Positive Lymph Nodes") +
+  labs(title = "The more cancer positive lymph nodes, the lower chance of survival")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+ggplot(data = df_tidy, mapping = aes(x=as.factor(overall_survival), y=nottingham_prognostic_index, 
+                                      fill=overall_survival), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Survived Cancer Diagnosis") + 
+  ylab("nottingham_prognostic_index") +
+  labs(title = "nottingham prognostic index")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+ggplot(df_tidy) + geom_bar(aes(x = lymph_nodes_examined_positive))+
+  coord_cartesian(xlim=c(1, 50))
+```
+
+```{r}
+ggplot(data = df_tidy, mapping = aes(x=as.factor(overall_survival), y=mutation_count, 
+                                      fill=overall_survival), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Survived Cancer Diagnosis") + 
+  ylab("Num of Mutations") +
+  labs(title = "The more cancer mutations, the lower chance of survival")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_died <- df_tidy  %>%
+filter(death_from_cancer != "Died of Other Causes")
+```
+
+```{r}
+ggplot(data = df_tidy, aes(x=death_from_cancer, 
+                                      fill=death_from_cancer), position = 
+         position_dodge(width = 1), yl) +
+  geom_bar()+
+  xlab("Current Status") + 
+  ylab("Count of current disposition") +
+  labs(title = "If dead, how: Died of Cancer vs not")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+ggplot(data = df_tidy, mapping = aes(x=as.factor(overall_survival), y=nottingham_prognostic_index, 
+                                      fill=overall_survival), position = 
+         position_dodge(width = 1), yl) +
+  facet_wrap(~death_from_cancer) +
+  geom_boxplot() +
+  xlab("Survived Cancer Diagnosis") + 
+  ylab("nottingham_prognostic_index") +
+  labs(title = "nottingham prognostic index")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+ggplot(data = df_tidy, mapping = aes(x=nottingham_prognostic_index,
+                                      fill=death_from_cancer), position =
+         position_dodge(width = 1), yl) +
+  #facet_wrap(~death_from_cancer) +
+  geom_bar() +
+  ylab("Count of respondants") +
+  xlab("nottingham_prognostic_index") +
+  labs(title = "nottingham prognostic index")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+NPI = tumor size, number of lymph nodes effected, grade of tumor 
+```{r}
+ggplot(data = df_original_tidy, mapping = aes(x=nottingham_prognostic_index, y = overall_survival_months,
+                                      fill=death_from_cancer), position =
+         position_dodge(width = 1), yl) +
+  geom_point() +
+  facet_wrap(~death_from_cancer) +
+  geom_smooth(method="lm", color="red") +
+  xlab("NPI") +
+  ylab("overall survival months") +
+  labs(title = "nottingham prognostic index")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+ggplot(data = df_original_tidy, mapping = aes(x=overall_survival_months, y =nottingham_prognostic_index ,
+                                      fill=death_from_cancer), position =
+         position_dodge(width = 1), yl) +
+  geom_point() +
+  facet_wrap(~death_from_cancer) +
+  geom_smooth(method="lm", color="red") +
+  ylab("NPI") +
+  xlab("overall survival months") +
+  labs(title = "nottingham prognostic index")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+ggplot(data = df_original_tidy, mapping = aes(x=age_at_diagnosis, y =nottingham_prognostic_index ,
+                                      fill=death_from_cancer), position =
+         position_dodge(width = 1), yl) +
+  geom_point() +
+  facet_wrap(~death_from_cancer) +
+  geom_smooth(method="lm", color="red") +
+  ylab("NPI") +
+  xlab("age at diagnosis") +
+  labs(title = "nottingham prognostic index") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_death_only <- df_original_tidy  %>%
+ filter(death_from_cancer == "Died of Disease" )
+```
+
+```{r}
+ggplot(data = df_death_only, mapping = aes(x=overall_survival_months, y=age_at_diagnosis ,
+                                      fill=death_from_cancer), position =
+         position_dodge(width = 1), yl) +
+  geom_point() +
+  facet_wrap(~death_from_cancer) +
+  geom_smooth(method="lm", color="red") +
+  xlab("survival months after diagnosis") +
+  ylab("age at diagnosis") +
+  labs(title = "Age at Diagnosis vs months of survival following diagnosis") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_chemo_only <- df_original_tidy  %>%
+ filter(chemotherapy == 1 & hormone_therapy == 0 & radio_therapy == 0)
+        
+```
+
+```{r}
+ggplot(data = df_chemo_only, mapping = aes(x=as.factor(overall_survival), y=overall_survival_months, 
+                                      fill=overall_survival, color = "red"), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Overall Survival") + 
+  ylab("Months surviving with chemo therapy") +
+  labs(title = "Surgeries in combination when only chemo is used")+
+  facet_wrap(~type_of_breast_surgery) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_hormone_only <- df_original_tidy  %>%
+ filter(chemotherapy == 0 & hormone_therapy == 1 & radio_therapy == 0)
+```
+
+```{r}
+ggplot(data = df_hormone_only, mapping = aes(x=as.factor(overall_survival), y=overall_survival_months, 
+                                      fill=overall_survival, color = "red"), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Overall Survival") + 
+  ylab("Months surviving with hormone therapy") +
+  labs(title = "Surgeries in combination when only hormone therapy is used")+
+  facet_wrap(~type_of_breast_surgery) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_radio_only <- df_original_tidy  %>%
+ filter(chemotherapy == 0 & hormone_therapy == 0 & radio_therapy == 1)
+      
+```
+
+```{r}
+ggplot(data = df_radio_only, mapping = aes(x=as.factor(overall_survival), y=overall_survival_months, 
+                                      fill=overall_survival, color = "red"), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Overall Survival") + 
+  ylab("Months surviving with radio therapy") +
+  labs(title = "Surgeries in combination when only Radiation Therapy is used")+
+  facet_wrap(~type_of_breast_surgery) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_chemo_hormone <- df_original_tidy  %>%
+ filter(chemotherapy == 1 & hormone_therapy == 1 & radio_therapy == 0)
+
+```
+
+```{r}
+ggplot(data = df_chemo_hormone, mapping = aes(x=as.factor(overall_survival), y=overall_survival_months, 
+                                      fill=overall_survival, color = "red"), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Overall Survival") + 
+  ylab("Months surviving with chemo and hormone therapy") +
+  labs(title = "Surgeries in combination when chemo and hormone therapy is used")+
+  facet_wrap(~type_of_breast_surgery) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+```{r}
+df_chemo_radio <- df_original_tidy  %>%
+ filter(chemotherapy == 1 & hormone_therapy == 0 & radio_therapy == 1)
+         
+```
+
+```{r}
+ggplot(data = df_chemo_radio, mapping = aes(x=as.factor(overall_survival), y=overall_survival_months, 
+                                      fill=overall_survival, color = "red"), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Overall Survival") + 
+  ylab("Months surviving with chemo and radio therapy") +
+  labs(title = "Surgeries in combination when chemo and radiation therapy is used")+
+  facet_wrap(~type_of_breast_surgery) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_hormone_radio <- df_original_tidy  %>%
+ filter(chemotherapy == 0 & hormone_therapy == 1 & radio_therapy == 1)
+
+```
+
+```{r}
+ggplot(data = df_hormone_radio, mapping = aes(x=as.factor(overall_survival), y=overall_survival_months, 
+                                      fill=overall_survival, color = "red"), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Overall Survival") + 
+  ylab("Months surviving with hormone and radio therapy") +
+  labs(title = "Surgeries in combination when hormone and radiation therapy is used") +
+  facet_wrap(~type_of_breast_surgery) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_all3 <- df_original_tidy  %>%
+ filter(chemotherapy == 1 & hormone_therapy == 1 & radio_therapy == 1)
+
+```
+
+```{r}
+ggplot(data = df_all3, mapping = aes(x=as.factor(overall_survival), y=overall_survival_months, 
+                                      fill=overall_survival, color = "red"), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Overall Survival") + 
+  ylab("Months surviving with chemo, hormone and radio therapy") +
+  labs(title = "Surgeries in combination when chemo, radiation, and hormone therapy is used")+
+  facet_wrap(~type_of_breast_surgery) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+df_all3 <- df_original_tidy  %>%
+ filter(chemotherapy == 1 & hormone_therapy == 1 & radio_therapy == 1)
+
+```
+
+```{r}
+ggplot(data = df_original_tidy, mapping = aes(x=as.factor(overall_survival), y=overall_survival_months, 
+                                      fill=overall_survival, color = "red"), position = 
+         position_dodge(width = 1), yl) +
+  geom_boxplot() +
+  xlab("Overall Survival") + 
+  ylab("Months surviving with chemo, hormone and radio therapy") +
+  labs(title = "Surgeries over all combinations or lack of treatment")+
+  facet_wrap(~type_of_breast_surgery) +
+  theme(axis.text.x = element_text(angle = 90))
+```
